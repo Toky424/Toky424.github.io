@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contrôle OBS Mobile</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .connection-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .status.disconnected {
+            background: rgba(255, 87, 87, 0.3);
+            border: 1px solid rgba(255, 87, 87, 0.5);
+        }
+
+        .status.connected {
+            background: rgba(76, 217, 100, 0.3);
+            border: 1px solid rgba(76, 217, 100, 0.5);
+        }
+
+        .status.connecting {
+            background: rgba(255, 193, 7, 0.3);
+            border: 1px solid rgba(255, 193, 7, 0.5);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.4);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .controls {
+            display: none;
+        }
+
+        .controls.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .scene-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .scene-btn {
+            padding: 20px 10px;
+            background: linear-gradient(45deg, #9C27B0, #7B1FA2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(156, 39, 176, 0.4);
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .scene-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(156, 39, 176, 0.6);
+        }
+
+        .scene-btn.active {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
+        }
+
+        .source-control {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .source-info {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .source-name {
+            font-weight: 600;
+            margin-left: 10px;
+            flex: 1;
+        }
+
+        .source-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .toggle-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 60px;
+        }
+
+        .toggle-btn.active {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .toggle-btn.inactive {
+            background: rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 5px 10px;
+        }
+
+        .volume-slider {
+            width: 80px;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            border: none;
+        }
+
+        .volume-display {
+            font-size: 11px;
+            min-width: 35px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .mute-btn {
+            padding: 6px 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .mute-btn.muted {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+
+        .filter-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .filter-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+            color: white;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 10px;
+                padding: 20px;
+            }
+            
+            .scene-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Contrôle OBS</h1>
+        
+        <div class="connection-panel">
+            <div class="input-group">
+                <label for="ip">Adresse IP d'OBS :</label>
+                <input type="text" id="ip" value="localhost" placeholder="192.168.1.100">
+            </div>
+            
+            <div class="input-group">
+                <label for="port">Port :</label>
+                <input type="number" id="port" value="4455" placeholder="4455">
+            </div>
+            
+            <div class="input-group">
+                <label for="password">Mot de passe :</label>
+                <input type="password" id="password" placeholder="Optionnel">
+            </div>
+            
+            <div class="status disconnected" id="status">🔴 Déconnecté</div>
+            
+            <button class="btn btn-primary" id="connectBtn" onclick="toggleConnection()">
+                Se connecter
+            </button>
+        </div>
+
+        <div class="controls" id="controls">
+
+<h3 style="margin: 25px 0 10px; text-align: center;">💬 Chat Twitch</h3>
+<div style="
+    width: 100%;
+    height: 400px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.2);
+">
+    <iframe 
+        src="https://www.twitch.tv/popout/toky424/chat?darkpopout"
+        frameborder="0"
+        style="width: 100%; height: 100%; border: none;">
+    </iframe>
+</div>
+
+
+<div id="streamStats" style="
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    text-align: left;
+    line-height: 1.6;
+    display: none;
+    white-space: pre-line;
+">
+    📊 Chargement des statistiques OBS...
+</div>
+
+            <h3 style="margin-bottom: 15px; text-align: center;">🎬 Contrôles de streaming</h3>
+            
+            <button class="btn btn-primary" id="streamBtn" onclick="toggleStreaming()">
+                ▶️ Démarrer le stream
+            </button>
+            
+            <button class="btn btn-danger" id="recordBtn" onclick="toggleRecording()">
+                ⏺️ Démarrer l'enregistrement
+            </button>
+
+            <h3 style="margin: 25px 0 15px; text-align: center;">🎭 Scènes</h3>
+            <div class="scene-grid" id="sceneGrid">
+                <!-- Les scènes seront ajoutées dynamiquement -->
+            </div>
+
+            <h3 style="margin: 25px 0 15px; text-align: center;">🎤 Sources Audio</h3>
+            <div id="audioSources">
+                <!-- Les sources audio seront ajoutées dynamiquement -->
+            </div>
+
+            <h3 style="margin: 25px 0 15px; text-align: center;">📹 Sources Vidéo</h3>
+            <div id="videoSources">
+                <!-- Les sources vidéo seront ajoutées dynamiquement -->
+            </div>
+
+            <h3 style="margin: 25px 0 15px; text-align: center;">🎚️ Autres contrôles</h3>
+            
+            <button class="btn btn-secondary" onclick="refreshAll()">
+                🔄 Actualiser tout
+            </button>
+
+            <button class="btn btn-secondary" onclick="toggleStudioMode()">
+                🎬 Mode Studio
+            </button>
+        </div>
+
+        <div class="footer">
+            💡 Activez le plugin WebSocket dans OBS Studio
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let isConnected = false;
+        let isStreaming = false;
+        let isRecording = false;
+        let currentScene = '';
+        let scenes = [];
+        let audioSources = [];
+        let videoSources = [];
+        let studioModeEnabled = false;
+
+        // Éléments DOM
+        const statusEl = document.getElementById('status');
+        const connectBtn = document.getElementById('connectBtn');
+        const controlsEl = document.getElementById('controls');
+        const streamBtn = document.getElementById('streamBtn');
+        const recordBtn = document.getElementById('recordBtn');
+        const sceneGrid = document.getElementById('sceneGrid');
+        const audioSourcesEl = document.getElementById('audioSources');
+        const videoSourcesEl = document.getElementById('videoSources');
+
+        function updateStatus(message, type) {
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+
+        function toggleConnection() {
+            if (isConnected) {
+                disconnect();
+            } else {
+                connect();
+            }
+        }
+
+        function connect() {
+            const ip = document.getElementById('ip').value;
+            const port = document.getElementById('port').value;
+            const password = document.getElementById('password').value;
+
+            updateStatus('🟡 Connexion en cours...', 'connecting');
+            connectBtn.textContent = 'Connexion...';
+
+            const wsUrl = `ws://${ip}:${port}`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function() {
+                console.log('WebSocket connecté à OBS');
+                authenticate(password);
+            };
+
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+
+            ws.onclose = function() {
+                console.log('WebSocket déconnecté');
+                disconnect();
+            };
+
+            ws.onerror = function(error) {
+                console.error('Erreur WebSocket:', error);
+                updateStatus('❌ Erreur de connexion', 'disconnected');
+                connectBtn.textContent = 'Se connecter';
+            };
+        }
+
+        function authenticate(password) {
+            const authRequest = {
+                op: 1,
+                d: {
+                    rpcVersion: 1,
+                    authentication: password || undefined
+                }
+            };
+            ws.send(JSON.stringify(authRequest));
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            isConnected = false;
+            updateStatus('🔴 Déconnecté', 'disconnected');
+            connectBtn.textContent = 'Se connecter';
+            controlsEl.classList.remove('show');
+        }
+
+        function handleMessage(data) {
+            if (data.op === 2) { // Hello
+                console.log('Authentification réussie');
+                isConnected = true;
+                updateStatus('🟢 Connecté à OBS', 'connected');
+                connectBtn.textContent = 'Se déconnecter';
+                controlsEl.classList.add('show');
+                
+                // Récupérer les informations initiales
+                getStreamingStatus();
+                getRecordingStatus();
+                getScenes();
+                getAudioSources();
+                getVideoSources();
+                getStudioModeStatus();
+            } else if (data.op === 7) { // RequestResponse
+                handleResponse(data.d);
+            } else if (data.op === 5) { // Event
+                handleEvent(data.d);
+            }
+        }
+
+        function sendRequest(requestType, requestData = {}) {
+            if (!isConnected || !ws) return;
+            
+            const request = {
+                op: 6,
+                d: {
+                    requestType: requestType,
+                    requestId: Date.now().toString(),
+                    requestData: requestData
+                }
+            };
+            ws.send(JSON.stringify(request));
+        }
+
+        function handleResponse(data) {
+            switch(data.requestType) {
+                case 'GetStreamStatus':
+                    isStreaming = data.responseData.outputActive;
+                    updateStreamButton();
+                    break;
+                case 'GetRecordStatus':
+                    isRecording = data.responseData.outputActive;
+                    updateRecordButton();
+                    break;
+                case 'GetSceneList':
+                    scenes = data.responseData.scenes;
+                    currentScene = data.responseData.currentProgramSceneName;
+                    updateSceneGrid();
+                    break;
+                case 'GetInputList':
+                    handleInputList(data.responseData.inputs);
+                    break;
+                case 'GetStudioModeEnabled':
+                    studioModeEnabled = data.responseData.studioModeEnabled;
+                    break;
+                case 'GetInputVolume':
+                    updateVolumeDisplay(data.requestData.inputName, data.responseData);
+                    break;
+            }
+        }
+
+        function handleEvent(eventData) {
+            switch(eventData.eventType) {
+                case 'StreamStateChanged':
+                    isStreaming = eventData.eventData.outputActive;
+                    updateStreamButton();
+                    break;
+                case 'RecordStateChanged':
+                    isRecording = eventData.eventData.outputActive;
+                    updateRecordButton();
+                    break;
+                case 'CurrentProgramSceneChanged':
+                    currentScene = eventData.eventData.sceneName;
+                    updateSceneGrid();
+                    break;
+                case 'InputVolumeChanged':
+                    updateVolumeFromEvent(eventData.eventData);
+                    break;
+                case 'InputMuteStateChanged':
+                    updateMuteState(eventData.eventData.inputName, eventData.eventData.inputMuted);
+                    break;
+                case 'SceneItemEnableStateChanged':
+                    updateSourceVisibility(eventData.eventData);
+                    break;
+            }
+        }
+
+        function getStreamingStatus() {
+            sendRequest('GetStreamStatus');
+        }
+
+        function getRecordingStatus() {
+            sendRequest('GetRecordStatus');
+        }
+
+        function getScenes() {
+            sendRequest('GetSceneList');
+        }
+
+        function getAudioSources() {
+            sendRequest('GetInputList', { inputKind: null });
+        }
+
+        function getVideoSources() {
+            sendRequest('GetInputList', { inputKind: null });
+        }
+
+        function getStudioModeStatus() {
+            sendRequest('GetStudioModeEnabled');
+        }
+
+        function handleInputList(inputs) {
+            audioSources = [];
+            videoSources = [];
+            
+            inputs.forEach(input => {
+                if (input.inputKind.includes('audio') || 
+                    input.inputKind === 'pulse_input_capture' ||
+                    input.inputKind === 'pulse_output_capture' ||
+                    input.inputKind === 'alsa_input_capture' ||
+                    input.inputKind === 'wasapi_input_capture' ||
+                    input.inputKind === 'wasapi_output_capture' ||
+                    input.inputName.toLowerCase().includes('micro') ||
+                    input.inputName.toLowerCase().includes('audio')) {
+                    audioSources.push(input);
+                } else if (input.inputKind.includes('video') ||
+                          input.inputKind === 'dshow_input' ||
+                          input.inputKind === 'v4l2_input' ||
+                          input.inputKind === 'av_capture_input' ||
+                          input.inputKind === 'window_capture' ||
+                          input.inputKind === 'monitor_capture' ||
+                          input.inputKind === 'game_capture') {
+                    videoSources.push(input);
+                }
+                
+                // Récupérer le volume pour les sources audio
+                if (audioSources.includes(input)) {
+                    sendRequest('GetInputVolume', { inputName: input.inputName });
+                    sendRequest('GetInputMute', { inputName: input.inputName });
+                }
+            });
+            
+            updateAudioSources();
+            updateVideoSources();
+        }
+
+        function toggleStreaming() {
+            if (isStreaming) {
+                sendRequest('StopStream');
+            } else {
+                sendRequest('StartStream');
+            }
+        }
+
+        function toggleRecording() {
+            if (isRecording) {
+                sendRequest('StopRecord');
+            } else {
+                sendRequest('StartRecord');
+            }
+        }
+
+        function switchScene(sceneName) {
+            sendRequest('SetCurrentProgramScene', { sceneName: sceneName });
+        }
+
+        function refreshAll() {
+            getScenes();
+            getAudioSources();
+            getVideoSources();
+            getStudioModeStatus();
+        }
+
+        function toggleStudioMode() {
+            sendRequest('SetStudioModeEnabled', { studioModeEnabled: !studioModeEnabled });
+        }
+
+        function toggleSourceMute(sourceName) {
+            sendRequest('ToggleInputMute', { inputName: sourceName });
+        }
+
+        function setSourceVolume(sourceName, volume) {
+            sendRequest('SetInputVolume', { 
+                inputName: sourceName, 
+                inputVolumeDb: volume
+            });
+        }
+
+        function toggleSourceVisibility(sceneName, sourceId) {
+            sendRequest('GetSceneItemEnabled', { 
+                sceneName: sceneName, 
+                sceneItemId: sourceId 
+            });
+        }
+
+        function updateStreamButton() {
+            if (isStreaming) {
+                streamBtn.textContent = '⏹️ Arrêter le stream';
+                streamBtn.className = 'btn btn-danger';
+            } else {
+                streamBtn.textContent = '▶️ Démarrer le stream';
+                streamBtn.className = 'btn btn-primary';
+            }
+        }
+
+        function updateRecordButton() {
+            if (isRecording) {
+                recordBtn.textContent = '⏹️ Arrêter l\'enregistrement';
+                recordBtn.className = 'btn btn-danger';
+            } else {
+                recordBtn.textContent = '⏺️ Démarrer l\'enregistrement';
+                recordBtn.className = 'btn btn-danger';
+            }
+        }
+
+        function updateSceneGrid() {
+            sceneGrid.innerHTML = '';
+            scenes.forEach(scene => {
+                const button = document.createElement('button');
+                button.className = 'scene-btn';
+                button.textContent = scene.sceneName;
+                button.onclick = () => switchScene(scene.sceneName);
+                
+                if (scene.sceneName === currentScene) {
+                    button.classList.add('active');
+                }
+                
+                sceneGrid.appendChild(button);
+            });
+        }
+
+        function updateAudioSources() {
+            audioSourcesEl.innerHTML = '';
+            
+            if (audioSources.length === 0) {
+                audioSourcesEl.innerHTML = '<p style="text-align: center; opacity: 0.7;">Aucune source audio trouvée</p>';
+                return;
+            }
+            
+            audioSources.forEach(source => {
+                const sourceDiv = document.createElement('div');
+                sourceDiv.className = 'source-control';
+                sourceDiv.innerHTML = `
+                    <div class="source-info">
+                        <span style="font-size: 18px;">🎤</span>
+                        <span class="source-name">${source.inputName}</span>
+                    </div>
+                    <div class="source-controls">
+                        <button class="mute-btn" id="mute-${source.inputName}" onclick="toggleSourceMute('${source.inputName}')">
+                            🔇
+                        </button>
+                        <div class="volume-control">
+                            <span class="volume-display" id="vol-display-${source.inputName}">0dB</span>
+                            <input type="range" class="volume-slider" 
+                                   id="vol-${source.inputName}"
+                                   min="-60" max="6" step="1" value="0"
+                                   onchange="setSourceVolume('${source.inputName}', this.value)">
+                        </div>
+                    </div>
+                `;
+                audioSourcesEl.appendChild(sourceDiv);
+            });
+        }
+
+        function updateVideoSources() {
+            videoSourcesEl.innerHTML = '';
+            
+            if (videoSources.length === 0) {
+                videoSourcesEl.innerHTML = '<p style="text-align: center; opacity: 0.7;">Aucune source vidéo trouvée</p>';
+                return;
+            }
+            
+            videoSources.forEach(source => {
+                const sourceDiv = document.createElement('div');
+                sourceDiv.className = 'source-control';
+                
+                let icon = '📹';
+                if (source.inputKind === 'window_capture') icon = '🪟';
+                else if (source.inputKind === 'monitor_capture') icon = '🖥️';
+                else if (source.inputKind === 'game_capture') icon = '🎮';
+                else if (source.inputKind.includes('dshow')) icon = '📷';
+                
+                sourceDiv.innerHTML = `
+                    <div class="source-info">
+                        <span style="font-size: 18px;">${icon}</span>
+                        <span class="source-name">${source.inputName}</span>
+                    </div>
+                    <div class="source-controls">
+                        <button class="toggle-btn active" id="vis-${source.inputName}">
+                            👁️ ON
+                        </button>
+                    </div>
+                `;
+                videoSourcesEl.appendChild(sourceDiv);
+            });
+        }
+
+        function updateVolumeDisplay(sourceName, volumeData) {
+            const display = document.getElementById(`vol-display-${sourceName}`);
+            const slider = document.getElementById(`vol-${sourceName}`);
+            const muteBtn = document.getElementById(`mute-${sourceName}`);
+            
+            if (display && slider) {
+                const db = Math.round(volumeData.inputVolumeDb);
+                display.textContent = `${db}dB`;
+                slider.value = db;
+            }
+            
+            if (muteBtn) {
+                muteBtn.textContent = volumeData.inputMuted ? '🔇' : '🔊';
+                muteBtn.classList.toggle('muted', volumeData.inputMuted);
+            }
+        }
+
+        function updateVolumeFromEvent(eventData) {
+            updateVolumeDisplay(eventData.inputName, eventData);
+        }
+
+        function updateMuteState(sourceName, isMuted) {
+            const muteBtn = document.getElementById(`mute-${sourceName}`);
+            if (muteBtn) {
+                muteBtn.textContent = isMuted ? '🔇' : '🔊';
+                muteBtn.classList.toggle('muted', isMuted);
+            }
+        }
+
+        function updateSourceVisibility(eventData) {
+            // Mise à jour de la visibilité des sources dans les scènes
+            // Cette fonction sera appelée lors des événements de changement de visibilité
+        }
+
+        // Gestion tactile améliorée pour mobile
+        document.addEventListener('touchstart', function() {}, { passive: true });
+        
+        // Empêcher le zoom sur double-tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        // ===================== STATS OBS =====================
+function updateStreamStats() {
+    if (!isConnected || !ws) return;
+    sendRequest('GetStats');
+    sendRequest('GetStreamStatus');
+}
+
+let lastStreamTime = "00:00:00";
+
+function formatTime(seconds) {
+    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+}
+
+const originalHandleResponse = window.handleResponse;
+window.handleResponse = function handleResponse(data) {
+    switch(data.requestType) {
+        case 'GetStats':
+            const stats = data.responseData;
+            const statsText = 
+                `🎥 Scène : ${currentScene}\n` +
+                `📶 Bitrate : ${Math.round(stats.outputBytesPerSecond * 8 / 1000)} kbps\n` +
+                `🖥️ FPS : ${stats.activeFps}\n` +
+                `🧠 CPU : ${stats.cpuUsage.toFixed(1)}%\n` +
+                `❌ Images perdues : ${stats.outputSkippedFrames}\n` +
+                `⏱️ Durée : ${lastStreamTime}`;
+            const statsBox = document.getElementById('streamStats');
+            statsBox.textContent = statsText;
+            statsBox.style.display = "block";
+            break;
+        case 'GetStreamStatus':
+            if (data.responseData.outputActive) {
+                lastStreamTime = formatTime(data.responseData.outputDuration / 1000);
+            }
+            break;
+        default:
+            originalHandleResponse(data);
+            break;
+    }
+};
+
+// Mettre à jour les stats toutes les 2 secondes
+setInterval(updateStreamStats, 2000);
+
+    </script>
+</body>
+</html>
